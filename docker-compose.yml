@@ -1,0 +1,104 @@
+version: "3.8"
+
+services:
+  # MongoDB database
+  mongo:
+    image: mongo:6
+    container_name: chat-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: chatapp
+    networks:
+      - chat-network
+
+  # Redis for pub/sub
+  redis:
+    image: redis:7-alpine
+    container_name: chat-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - chat-network
+
+  # User Service
+  user-service:
+    build: ./services/user
+    container_name: chat-user-service
+    environment:
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://mongo:27017
+      - MONGO_DB=chatapp
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PORT=3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - chat-network
+
+  # Chat Service Instance 1
+  chat-service-1:
+    build: ./services/chat
+    container_name: chat-service-1
+    environment:
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://mongo:27017
+      - MONGO_DB=chatapp
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PORT=3002
+    ports:
+      - "3002:3002"
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - chat-network
+
+  # Chat Service Instance 2
+  chat-service-2:
+    build: ./services/chat
+    container_name: chat-service-2
+    environment:
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://mongo:27017
+      - MONGO_DB=chatapp
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PORT=3003
+    ports:
+      - "3003:3003"
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - chat-network
+
+  # Frontend
+  frontend:
+    build: ./frontend
+    container_name: chat-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - user-service
+      - chat-service-1
+      - chat-service-2
+    networks:
+      - chat-network
+
+networks:
+  chat-network:
+    driver: bridge
+
+volumes:
+  mongo_data:
+  redis_data:
