@@ -32,6 +32,8 @@ This is a mono-repo containing multiple services and a frontend application:
 - **Message Ordering**: `created_at TIMESTAMPTZ` with database-level guarantees
 - **Consistency Flow**: Database insert → COMMIT → Redis publish (ensures no message loss)
 - **Frontend**: React + Apollo Client with `graphql-ws` subscription link
+- **Load Balancing**: Frontend round-robin across `chat-service-1` (3002) and `chat-service-2` (3003) for both HTTP and WebSocket links
+- **Window-scoped sessions**: Frontend uses `sessionStorage` per tab/window to avoid shared logins across windows
 
 ### Frontend
 - **React**: Frontend library for building user interfaces
@@ -84,6 +86,12 @@ chat-app/
    - PostgreSQL: postgresql://chatuser:chatpass@localhost:5432/chatapp
    - Redis: localhost:6379
 
+4. **Run end-to-end test (Phase 7):**
+   ```bash
+   npm run test:e2e
+   ```
+   This test creates two users, auto-joins them to the General Chat, opens two GraphQL `graphql-ws` subscriptions, sends messages, and asserts both subscribers receive them in real time.
+
 ## Environment Variables
 
 | Variable | Description | Default |
@@ -102,69 +110,196 @@ chat-app/
 - **Advanced querying**: Complex joins and queries for chat history and user management
 - **GraphQL API**: Type-safe queries, mutations, and subscriptions
 
-## Development Phases
+### Testing
 
-This project follows a structured development approach:
+- Test runner: Jest + ts-jest
+- Command: `npm run test:e2e`
+- What it validates:
+  - PostgreSQL insert + COMMIT before Redis publish (consistency)
+  - Redis pub/sub fanout across subscribers
+  - GraphQL subscriptions via `graphql-ws` delivering messages in real time
+  - Correct message ordering, UUIDs, and ISO timestamps
 
-1. ✅ **Phase 0**: Project scaffolding and workspace setup
-2. ✅ **Phase 1**: Common design decisions and architecture
-3. ✅ **Phase 2**: PostgreSQL provider implementation
-4. 🚧 **Phase 3**: User Service development
-5. 🚧 **Phase 4**: Chat Service with real-time features
-6. 🚧 **Phase 5**: Multi-instance testing with Docker
-7. 🚧 **Phase 6**: React frontend with subscriptions
-8. 🚧 **Phase 7**: Testing strategy and end-to-end tests
-9. 🚧 **Phase 8**: Documentation and observability
+Troubleshooting: If you see "Cannot log after tests are done", it usually means a subscription attempted to log after Jest teardown. Ensure subscriptions are disposed and avoid logging inside `complete` callbacks.
 
-<!-- ## Why PostgreSQL over MongoDB?
+## API Reference
 
-**PostgreSQL is superior for chat applications due to:**
+This project exposes GraphQL APIs from two services. All operations are sent to the single endpoint `/graphql` over HTTP (for queries/mutations) and WebSocket (for subscriptions).
 
-### 🔒 **ACID Transactions = Message Consistency**
-- **Critical for chat**: Messages must appear in correct order for all users
-- **PostgreSQL**: Full ACID guarantees prevent lost or out-of-order messages
-- **MongoDB**: Potential consistency issues during network partitions
+- User Service (HTTP): `http://localhost:3001/graphql`
+- Chat Service (HTTP): `http://localhost:3002/graphql` and `http://localhost:3003/graphql`
+- Chat Service (WebSocket): `ws://localhost:3002/graphql` and `ws://localhost:3003/graphql`
 
-### 🔗 **Natural Relational Structure**
-- **Chat data is inherently relational**: users ↔ chats ↔ messages ↔ participants
-- **PostgreSQL**: Foreign keys, joins, and constraints model relationships perfectly
-- **MongoDB**: Requires complex denormalization or multiple queries
+Notes:
+- The frontend balances requests across both chat service instances.
+- The seed includes a General Chat whose UUID is used in examples below. If needed, query your DB to retrieve it. In our seed: `3e0c3aa1-e910-4aa2-9df3-c8901ff8a545`.
 
-### ⚡ **Superior Query Performance**
-- **Chat needs**: "Get last 50 messages from user's active chats, ordered by time"
-- **PostgreSQL**: Advanced indexing, query optimization, efficient JOINs
-- **MongoDB**: Limited aggregation pipeline, slower for complex queries
+### User Service GraphQL API (port 3001)
 
-### 🏗️ **Better Concurrency & Scaling**
-- **PostgreSQL**: MVCC (Multi-Version Concurrency Control) handles high read/write loads
-- **Chat apps**: Typically read-heavy with occasional writes - perfect for PostgreSQL
+Schema (relevant parts):
+```graphql
+type User {
+  id: ID!
+  username: String!
+  email: String
+  createdAt: DateTime!
+  lastSeen: DateTime
+  isActive: Boolean!
+}
 
-### 📊 **JSON Support When Needed**
-- **Best of both worlds**: Structured schema + flexible JSONB for message metadata
-- **Example**: Store reactions, attachments, formatting as JSONB while maintaining relational integrity
+input CreateUserInput {
+  username: String!
+  email: String
+}
 
-## Database Schema
+type Query {
+  user(id: ID!): User
+  userByUsername(username: String!): User
+}
 
-The application uses a well-structured relational schema:
-
-```sql
-users → chat_participants ← chats ← messages
+type Mutation {
+  createUser(input: CreateUserInput!): User!
+}
 ```
 
-- **users**: User profiles and authentication
-- **chats**: Chat rooms/conversations (group or direct)
-- **chat_participants**: Many-to-many relationship with roles
-- **messages**: Messages with JSONB metadata for flexibility
+Examples:
 
-See `init-db.sql` for the complete schema with indexes and sample data. -->
+Create user (HTTP):
+```bash
+curl -s -X POST http://localhost:3001/graphql \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": "mutation($input: CreateUserInput!){ createUser(input:$input){ id username email createdAt isActive } }",
+    "variables": { "input": { "username": "alice" } }
+  }'
+```
 
-## Contributing
+Get user by id:
+```bash
+curl -s -X POST http://localhost:3001/graphql \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": "query($id: ID!){ user(id:$id){ id username email } }",
+    "variables": { "id": "<USER_UUID>" }
+  }'
+```
 
-1. Follow the existing code structure and patterns
-2. Add proper TypeScript types
-3. Include tests for new functionality
-4. Update documentation as needed
+Get user by username:
+```bash
+curl -s -X POST http://localhost:3001/graphql \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": "query($u: String!){ userByUsername(username:$u){ id username email } }",
+    "variables": { "u": "alice" }
+  }'
+```
 
-## License
+### Chat Service GraphQL API (ports 3002/3003)
 
-ISC
+Schema (relevant parts):
+```graphql
+type Message { 
+  id: ID!
+  chatId: ID!
+  senderId: ID!
+  content: String!
+  createdAt: DateTime!
+  senderUsername: String
+}
+
+input SendMessageInput {
+  chatId: ID!
+  senderId: ID!
+  content: String!
+}
+
+type Query {
+  chatHistory(chatId: ID!, limit: Int = 50, offset: Int = 0): [Message!]!
+}
+
+type Mutation {
+  sendMessage(input: SendMessageInput!): Message!
+  joinGeneralChat(userId: ID!): Boolean!
+}
+
+type Subscription {
+  messageAdded(chatId: ID!): Message!
+}
+```
+
+Examples:
+
+Join General Chat for a user:
+```bash
+curl -s -X POST http://localhost:3002/graphql \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": "mutation($uid: ID!){ joinGeneralChat(userId:$uid) }",
+    "variables": { "uid": "<USER_UUID>" }
+  }'
+```
+
+Send message:
+```bash
+curl -s -X POST http://localhost:3002/graphql \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": "mutation($input: SendMessageInput!){ sendMessage(input:$input){ id content senderUsername createdAt } }",
+    "variables": {
+      "input": {
+        "chatId": "3e0c3aa1-e910-4aa2-9df3-c8901ff8a545",
+        "senderId": "<USER_UUID>",
+        "content": "Hello from README!"
+      }
+    }
+  }'
+```
+
+Get chat history (ordered chronologically in UI):
+```bash
+curl -s -X POST http://localhost:3002/graphql \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "query": "query($chatId: ID!, $limit: Int, $offset: Int){ chatHistory(chatId:$chatId, limit:$limit, offset:$offset){ id content senderUsername createdAt } }",
+    "variables": { "chatId": "3e0c3aa1-e910-4aa2-9df3-c8901ff8a545", "limit": 50, "offset": 0 }
+  }'
+```
+
+Subscribe to new messages (WebSocket via `graphql-ws`):
+```js
+// Node snippet
+const { createClient } = require('graphql-ws');
+const WebSocket = require('ws');
+
+const client = createClient({ url: 'ws://localhost:3002/graphql', webSocketImpl: WebSocket });
+const unsubscribe = client.subscribe(
+  {
+    query: 'subscription($chatId: ID!){ messageAdded(chatId: $chatId){ id content senderUsername createdAt } }',
+    variables: { chatId: '3e0c3aa1-e910-4aa2-9df3-c8901ff8a545' }
+  },
+  {
+    next: (data) => console.log('messageAdded:', data.data.messageAdded),
+    error: console.error,
+    complete: () => {}
+  }
+);
+```
+
+## Frontend Behavior
+
+- Apollo Client routes user-related GraphQL operations to the User Service and chat-related ones to the Chat Service automatically.
+- Round-robin load balancing is applied for both HTTP and WebSocket connections across the two chat instances.
+- Sessions are window-scoped using `sessionStorage`, allowing different users in different tabs without interference.
+
+## Data Model (PostgreSQL)
+
+- Tables: `users`, `chats`, `chat_participants`, `messages`
+- UUIDs are exposed externally via GraphQL; SERIAL integer IDs are used internally for relations.
+- Timestamps are `TIMESTAMPTZ` and converted to ISO-8601 strings in API responses.
+
+## Troubleshooting
+
+- Port conflicts on 5432 (PostgreSQL): ensure no local Postgres is running (`brew services stop postgresql@14`).
+- Docker build dependency issues: use `npm install --legacy-peer-deps` inside service Dockerfiles (already configured).
+- If subscriptions don’t receive events, confirm Redis is running and both chat instances connect to the same Redis host.
+- Jest warning "Cannot log after tests are done": ensure subscription disposals happen before test completion (implemented in the e2e test).
