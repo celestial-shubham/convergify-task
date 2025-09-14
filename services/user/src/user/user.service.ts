@@ -34,8 +34,8 @@ export class UserService {
         id: user.uuid,
         username: user.username,
         email: user.email,
-        createdAt: user.createdAt,
-        lastSeen: user.lastSeen,
+        createdAt: user.createdAt.toISOString(),
+        lastSeen: user.lastSeen?.toISOString(),
         isActive: user.isActive,
       };
     } catch (error: any) {
@@ -65,8 +65,8 @@ export class UserService {
       id: user.uuid,
       username: user.username,
       email: user.email,
-      createdAt: user.createdAt,
-      lastSeen: user.lastSeen,
+      createdAt: user.createdAt.toISOString(),
+      lastSeen: user.lastSeen?.toISOString(),
       isActive: user.isActive,
     };
   }
@@ -85,8 +85,8 @@ export class UserService {
       id: user.uuid,
       username: user.username,
       email: user.email,
-      createdAt: user.createdAt,
-      lastSeen: user.lastSeen,
+      createdAt: user.createdAt.toISOString(),
+      lastSeen: user.lastSeen?.toISOString(),
       isActive: user.isActive,
     };
   }

@@ -1,0 +1,57 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Message {
+  """Chat UUID"""
+  chatId: ID!
+
+  """Chat name"""
+  chatName: String
+
+  """Message content"""
+  content: String!
+
+  """Message creation time"""
+  createdAt: DateTime!
+
+  """Message UUID"""
+  id: ID!
+
+  """Sender UUID"""
+  senderId: ID!
+
+  """Sender username"""
+  senderUsername: String
+}
+
+type Mutation {
+  """Send a message to a chat (with real-time distribution)"""
+  sendMessage(input: SendMessageInput!): Message!
+}
+
+type Query {
+  """Get chat message history with pagination"""
+  chatHistory(chatId: ID!, limit: Float! = 50, offset: Float! = 0): [Message!]!
+}
+
+input SendMessageInput {
+  """Chat UUID"""
+  chatId: ID!
+
+  """Message content (1-1000 characters)"""
+  content: String!
+
+  """Sender UUID"""
+  senderId: ID!
+}
+
+type Subscription {
+  """Subscribe to new messages in a specific chat"""
+  messageAdded(chatId: ID!): Message!
+}

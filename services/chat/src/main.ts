@@ -1,18 +1,9 @@
-// AI: Application bootstrap (Claude assisted)
+// AI: Chat Service Bootstrap (Claude assisted)
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
-  // Enable validation globally (temporarily disabled for testing)
-  // app.useGlobalPipes(new ValidationPipe({
-  //   whitelist: true,
-  //   forbidNonWhitelisted: true,
-  //   transform: true,
-  //   disableErrorMessages: false,
-  // }));
 
   // Enable CORS for frontend
   app.enableCors({
@@ -21,15 +12,16 @@ async function bootstrap() {
   });
 
   // Use port from environment or default
-  const port = process.env.PORT || 3001;
+  const port = process.env.PORT || 3002;
   
   await app.listen(port);
   
-  console.log(`🚀 User Service running on: http://localhost:${port}`);
+  console.log(`🚀 Chat Service running on: http://localhost:${port}`);
   console.log(`📊 GraphQL Playground: http://localhost:${port}/graphql`);
+  console.log(`🔔 Subscriptions enabled via WebSocket`);
 }
 
 bootstrap().catch((error) => {
-  console.error('Failed to start User Service:', error);
+  console.error('Failed to start Chat Service:', error);
   process.exit(1);
 });

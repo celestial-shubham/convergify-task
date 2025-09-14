@@ -12,11 +12,11 @@ export class UserType {
   @Field({ nullable: true, description: 'User email address' })
   email?: string;
 
-  @Field({ description: 'Account creation timestamp' })
-  createdAt!: Date;
+  @Field({ description: 'Account creation timestamp (ISO string)' })
+  createdAt!: string;
 
-  @Field({ nullable: true, description: 'Last activity timestamp' })
-  lastSeen?: Date;
+  @Field({ nullable: true, description: 'Last activity timestamp (ISO string)' })
+  lastSeen?: string;
 
   @Field({ description: 'Account active status' })
   isActive!: boolean;

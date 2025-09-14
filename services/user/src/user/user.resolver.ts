@@ -1,6 +1,5 @@
 // AI: User GraphQL Resolver (Claude assisted)
 import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
-import { ValidationPipe } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserType } from './user.types';
 import { CreateUserInput } from './dto/create-user.input';
@@ -17,7 +16,7 @@ export class UserResolver {
     name: 'createUser'
   })
   async createUser(
-    @Args('input', new ValidationPipe()) createUserInput: CreateUserInput,
+    @Args('input') createUserInput: CreateUserInput,
   ): Promise<UserType> {
     return this.userService.createUser(createUserInput);
   }
