@@ -1,16 +1,20 @@
 version: "3.8"
 
 services:
-  # MongoDB database
-  mongo:
-    image: mongo:6
-    container_name: chat-mongo
+  # PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    container_name: chat-postgres
     ports:
-      - "27017:27017"
+      - "5432:5432"
     volumes:
-      - mongo_data:/data/db
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     environment:
-      MONGO_INITDB_DATABASE: chatapp
+      POSTGRES_DB: chatapp
+      POSTGRES_USER: chatuser
+      POSTGRES_PASSWORD: chatpass
+      POSTGRES_INITDB_ARGS: "--auth-local=trust"
     networks:
       - chat-network
 
@@ -31,15 +35,14 @@ services:
     container_name: chat-user-service
     environment:
       - NODE_ENV=production
-      - MONGO_URI=mongodb://mongo:27017
-      - MONGO_DB=chatapp
+      - DATABASE_URL=postgresql://chatuser:chatpass@postgres:5432/chatapp
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - PORT=3001
     ports:
       - "3001:3001"
     depends_on:
-      - mongo
+      - postgres
       - redis
     networks:
       - chat-network
@@ -50,15 +53,14 @@ services:
     container_name: chat-service-1
     environment:
       - NODE_ENV=production
-      - MONGO_URI=mongodb://mongo:27017
-      - MONGO_DB=chatapp
+      - DATABASE_URL=postgresql://chatuser:chatpass@postgres:5432/chatapp
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - PORT=3002
     ports:
       - "3002:3002"
     depends_on:
-      - mongo
+      - postgres
       - redis
     networks:
       - chat-network
@@ -69,15 +71,14 @@ services:
     container_name: chat-service-2
     environment:
       - NODE_ENV=production
-      - MONGO_URI=mongodb://mongo:27017
-      - MONGO_DB=chatapp
+      - DATABASE_URL=postgresql://chatuser:chatpass@postgres:5432/chatapp
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - PORT=3003
     ports:
       - "3003:3003"
     depends_on:
-      - mongo
+      - postgres
       - redis
     networks:
       - chat-network
@@ -100,5 +101,5 @@ networks:
     driver: bridge
 
 volumes:
-  mongo_data:
+  postgres_data:
   redis_data:

@@ -110,3 +110,6 @@ dist/
 # Logs
 logs
 *.log
+
+# trackify 
+*.jsonl
