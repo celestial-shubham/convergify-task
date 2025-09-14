@@ -1,6 +1,21 @@
 # Chat Application
 
+**Author**: Shubham Verma  
+**Contact**: shubhamverma17b@gmail.com  
+**Portfolio Project**: 2025-09-15 - 2025-09-15  
+**LinkedIn**: www.linkedin.com/in/shubham--verma
+**GitHub**: https://github.com/celestial-shubham
+
 A real-time chat application built with PostgreSQL, Redis, GraphQL, NestJS, and React.
+
+---
+
+## 📄 **Important Notice**
+This is a portfolio project created by Shubham Verma. All code, architecture decisions, and documentation are original work. This repository is shared for evaluation purposes only.
+
+**For employment discussions, please contact: shubhamverma17b@gmail.com**
+
+---
 
 ## Project Architecture
 

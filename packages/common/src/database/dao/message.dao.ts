@@ -1,4 +1,3 @@
-// AI: Message Data Access Object (Claude assisted)
 import { Injectable, Inject } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
 import { DATABASE_POOL, withTransaction } from '../database.provider';

@@ -1,4 +1,3 @@
-// AI: Redis pub/sub provider (Claude assisted)
 import { OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
 import { PubSub } from 'graphql-subscriptions';

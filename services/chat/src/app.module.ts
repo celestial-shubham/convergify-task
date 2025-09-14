@@ -19,8 +19,6 @@ import { join } from 'path';
       introspection: true,
       sortSchema: true,
       
-      // Use built-in Date scalar
-      
       // Enable subscriptions
       subscriptions: {
         'graphql-ws': true,

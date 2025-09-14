@@ -1,4 +1,3 @@
-// AI: Chat Module (Claude assisted)
 import { Module } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { ChatResolver } from './chat.resolver';

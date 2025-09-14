@@ -1,4 +1,3 @@
-// AI: NestJS Database Module (Claude assisted)
 import { Module, Global } from '@nestjs/common';
 import { 
   createDatabasePool,

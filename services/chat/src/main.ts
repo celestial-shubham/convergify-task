@@ -1,4 +1,3 @@
-// AI: Chat Service Bootstrap (Claude assisted)
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 

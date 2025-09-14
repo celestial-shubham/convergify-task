@@ -1,4 +1,3 @@
-// AI: User GraphQL Resolver (Claude assisted)
 import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
 import { UserService } from './user.service';
 import { UserType } from './user.types';

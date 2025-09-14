@@ -1,4 +1,3 @@
-// AI: Chat Data Access Object (Claude assisted)
 import { Injectable, Inject } from '@nestjs/common';
 import { Pool } from 'pg';
 import { DATABASE_POOL } from '../database.provider';

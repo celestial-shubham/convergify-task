@@ -1,4 +1,3 @@
-// AI: GraphQL User types (Claude assisted)
 import { ObjectType, Field, ID } from '@nestjs/graphql';
 
 @ObjectType('User')
