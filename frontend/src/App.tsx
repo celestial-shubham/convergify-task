@@ -1,12 +1,19 @@
 // AI: Main React app with Apollo Provider (Claude assisted)
 import React, { useState, useEffect } from 'react';
-import { ApolloProvider } from '@apollo/client';
+import { ApolloProvider, useQuery } from '@apollo/client';
+import { gql } from '@apollo/client';
 import { apolloClient } from './apolloClient';
 import { ChatWindow } from './components/ChatWindow';
 import { UserLogin } from './components/UserLogin';
 
-// Constants from our backend setup
-const CHAT_ID = '3e0c3aa1-e910-4aa2-9df3-c8901ff8a545'; // General Chat UUID
+const GET_GENERAL_CHAT = gql`
+  query GetGeneralChat {
+    generalChat {
+      id
+      name
+    }
+  }
+`;
 
 interface User {
   id: string;
@@ -18,8 +25,11 @@ interface User {
 const SESSION_ID = Date.now() + Math.random();
 const SESSION_KEY = `chatUser_${SESSION_ID}`;
 
-function App() {
+function AppContent() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  
+  // Dynamic General Chat lookup (no hardcoded UUID)
+  const { data: chatData, loading: chatLoading, error: chatError } = useQuery(GET_GENERAL_CHAT);
 
   // Check for existing user in sessionStorage for this window only
   useEffect(() => {
@@ -45,8 +55,19 @@ function App() {
     sessionStorage.removeItem(SESSION_KEY);
   };
 
+  // Handle loading and error states
+  if (chatLoading) {
+    return <div style={styles.loading}>Loading General Chat...</div>;
+  }
+  
+  if (chatError || !chatData?.generalChat) {
+    return <div style={styles.error}>❌ Failed to load General Chat. Please check your connection.</div>;
+  }
+
+  const generalChatId = chatData.generalChat.id;
+
   return (
-    <ApolloProvider client={apolloClient}>
+    <>
       {!currentUser ? (
         <UserLogin onUserSelected={handleUserSelected} />
       ) : (
@@ -65,7 +86,7 @@ function App() {
           
           <main style={styles.main}>
             <ChatWindow 
-              chatId={CHAT_ID}
+              chatId={generalChatId}
               userId={currentUser.id}
               username={currentUser.username}
             />
@@ -81,6 +102,14 @@ function App() {
           </footer>
         </div>
       )}
+    </>
+  );
+}
+
+function App() {
+  return (
+    <ApolloProvider client={apolloClient}>
+      <AppContent />
     </ApolloProvider>
   );
 }
@@ -139,6 +168,24 @@ const styles = {
     padding: '16px',
     textAlign: 'center' as const,
     fontSize: '14px',
+  },
+  loading: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '100vh',
+    fontSize: '18px',
+    color: '#666',
+  },
+  error: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '100vh',
+    fontSize: '16px',
+    color: '#dc3545',
+    textAlign: 'center' as const,
+    padding: '20px',
   },
 };
 

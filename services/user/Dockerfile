@@ -1,4 +1,3 @@
-# AI: User Service Dockerfile (Claude assisted)
 FROM node:18-alpine
 
 WORKDIR /app
@@ -25,9 +24,9 @@ WORKDIR /app/services/user
 # Expose port
 EXPOSE 3001
 
-# Health check
+# Health check (avoid curl; use Node fetch)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3001/graphql?query={__typename} || exit 1
+  CMD node -e "fetch('http://localhost:3001/graphql?query={__typename}')\n    .then(r=>process.exit(r.ok?0:1))\n    .catch(()=>process.exit(1))"
 
 # Start the service
 CMD ["npm", "run", "start:prod"]

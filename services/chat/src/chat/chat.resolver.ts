@@ -2,7 +2,7 @@
 import { Resolver, Query, Mutation, Subscription, Args, ID, Int } from '@nestjs/graphql';
 import { ParseIntPipe } from '@nestjs/common';
 import { ChatService } from './chat.service';
-import { MessageType } from './chat.types';
+import { MessageType, ChatType } from './chat.types';
 import { SendMessageInput } from './dto/send-message.input';
 
 @Resolver(() => MessageType)
@@ -38,6 +38,17 @@ export class ChatResolver {
     @Args('offset', { type: () => Int, defaultValue: 0 }, ParseIntPipe) offset: number,
   ): Promise<MessageType[]> {
     return this.chatService.getChatHistory(chatId, limit, offset);
+  }
+
+  /**
+   * Get General Chat info dynamically (no hardcoded UUIDs)
+   */
+  @Query(() => ChatType, { 
+    description: 'Get General Chat info by name lookup',
+    nullable: true
+  })
+  async generalChat(): Promise<ChatType | null> {
+    return this.chatService.getGeneralChat();
   }
 
   /**

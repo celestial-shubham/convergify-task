@@ -132,7 +132,6 @@ This project exposes GraphQL APIs from two services. All operations are sent to 
 
 Notes:
 - The frontend balances requests across both chat service instances.
-- The seed includes a General Chat whose UUID is used in examples below. If needed, query your DB to retrieve it. In our seed: `3e0c3aa1-e910-4aa2-9df3-c8901ff8a545`.
 
 ### User Service GraphQL API (port 3001)
 
@@ -247,7 +246,7 @@ curl -s -X POST http://localhost:3002/graphql \
     "query": "mutation($input: SendMessageInput!){ sendMessage(input:$input){ id content senderUsername createdAt } }",
     "variables": {
       "input": {
-        "chatId": "3e0c3aa1-e910-4aa2-9df3-c8901ff8a545",
+        "chatId": "646f4607-bfe5-40af-a005-105d845f6bb8",
         "senderId": "<USER_UUID>",
         "content": "Hello from README!"
       }
@@ -261,7 +260,7 @@ curl -s -X POST http://localhost:3002/graphql \
   -H 'Content-Type: application/json' \
   -d '{
     "query": "query($chatId: ID!, $limit: Int, $offset: Int){ chatHistory(chatId:$chatId, limit:$limit, offset:$offset){ id content senderUsername createdAt } }",
-    "variables": { "chatId": "3e0c3aa1-e910-4aa2-9df3-c8901ff8a545", "limit": 50, "offset": 0 }
+    "variables": { "chatId": "646f4607-bfe5-40af-a005-105d845f6bb8", "limit": 50, "offset": 0 }
   }'
 ```
 
@@ -275,7 +274,7 @@ const client = createClient({ url: 'ws://localhost:3002/graphql', webSocketImpl:
 const unsubscribe = client.subscribe(
   {
     query: 'subscription($chatId: ID!){ messageAdded(chatId: $chatId){ id content senderUsername createdAt } }',
-    variables: { chatId: '3e0c3aa1-e910-4aa2-9df3-c8901ff8a545' }
+    variables: { chatId: '646f4607-bfe5-40af-a005-105d845f6bb8' }
   },
   {
     next: (data) => console.log('messageAdded:', data.data.messageAdded),
@@ -303,3 +302,9 @@ const unsubscribe = client.subscribe(
 - Docker build dependency issues: use `npm install --legacy-peer-deps` inside service Dockerfiles (already configured).
 - If subscriptions don’t receive events, confirm Redis is running and both chat instances connect to the same Redis host.
 - Jest warning "Cannot log after tests are done": ensure subscription disposals happen before test completion (implemented in the e2e test).
+
+- Docker compose build issues: incase you get an error like this: 
+```
+ERROR [ExceptionHandler] connect ECONNREFUSED 172.18.0.3:5432
+```
+, then restart the affected docker compose service again , the postgres container might be in between the start process .

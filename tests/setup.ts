@@ -23,6 +23,5 @@ export const TEST_CONFIG = {
   USER_SERVICE_URL: 'http://localhost:3001/graphql',
   CHAT_SERVICE_URL: 'http://localhost:3002/graphql',  // We'll test with instance 1
   WS_URL: 'ws://localhost:3002/graphql',
-  GENERAL_CHAT_ID: '3e0c3aa1-e910-4aa2-9df3-c8901ff8a545',
   TEST_TIMEOUT: 10000,
 };

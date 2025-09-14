@@ -42,6 +42,15 @@ const MESSAGE_SUBSCRIPTION = `
   }
 `;
 
+const GET_GENERAL_CHAT = `
+  query GetGeneralChat {
+    generalChat {
+      id
+      name
+    }
+  }
+`;
+
 // Helper function to make HTTP GraphQL requests
 async function graphqlRequest(url: string, query: string, variables?: any) {
   const response = await fetch(url, {
@@ -124,8 +133,23 @@ describe('Real-time Messaging E2E', () => {
       console.error('❌ Failed to create users:', error);
       throw error;
     }
+    
+    let generalChatId: string;
+    try {
+      const chatResult = await graphqlRequest(TEST_CONFIG.CHAT_SERVICE_URL, GET_GENERAL_CHAT);
+      
+      if (!chatResult.generalChat) {
+        throw new Error('General Chat not found');
+      }
+      
+      generalChatId = chatResult.generalChat.id;
+      console.log(`✅ Found General Chat: ${generalChatId}`);
+    } catch (error) {
+      console.error('❌ Failed to get General Chat:', error);
+      throw error;
+    }
 
-    // Step 2: Join both users to General Chat
+    // Step 3: Join both users to General Chat
     console.log('🏠 Joining users to General Chat...');
     
     try {
@@ -143,7 +167,7 @@ describe('Real-time Messaging E2E', () => {
       throw error;
     }
 
-    // Step 3: Set up WebSocket subscriptions for both users
+    // Step 4: Set up WebSocket subscriptions for both users
     console.log('🔗 Setting up WebSocket subscriptions...');
     
     const receivedMessages1: any[] = [];
@@ -165,7 +189,7 @@ describe('Real-time Messaging E2E', () => {
       const dispose1 = wsClient1.subscribe(
         {
           query: MESSAGE_SUBSCRIPTION,
-          variables: { chatId: TEST_CONFIG.GENERAL_CHAT_ID },
+          variables: { chatId: generalChatId },
         },
         {
           next: (data: any) => {
@@ -188,7 +212,7 @@ describe('Real-time Messaging E2E', () => {
       const dispose2 = wsClient2.subscribe(
         {
           query: MESSAGE_SUBSCRIPTION,
-          variables: { chatId: TEST_CONFIG.GENERAL_CHAT_ID },
+          variables: { chatId: generalChatId },
         },
         {
           next: (data: any) => {
@@ -209,10 +233,6 @@ describe('Real-time Messaging E2E', () => {
 
     // Wait a bit for subscriptions to be established
     await waitFor(1000);
-    console.log('✅ WebSocket subscriptions established');
-
-    // Step 4: Send messages and verify real-time delivery
-    console.log('💬 Sending test messages...');
 
     const testMessage1 = `Hello from ${user1.username} at ${Date.now()}`;
     const testMessage2 = `Reply from ${user2.username} at ${Date.now()}`;
@@ -220,7 +240,7 @@ describe('Real-time Messaging E2E', () => {
     // Send first message from user1
     await graphqlRequest(TEST_CONFIG.CHAT_SERVICE_URL, SEND_MESSAGE, {
       input: {
-        chatId: TEST_CONFIG.GENERAL_CHAT_ID,
+        chatId: generalChatId,
         senderId: user1.id,
         content: testMessage1,
       },
@@ -234,7 +254,7 @@ describe('Real-time Messaging E2E', () => {
     // Send second message from user2
     await graphqlRequest(TEST_CONFIG.CHAT_SERVICE_URL, SEND_MESSAGE, {
       input: {
-        chatId: TEST_CONFIG.GENERAL_CHAT_ID,
+        chatId: generalChatId,
         senderId: user2.id,
         content: testMessage2,
       },
